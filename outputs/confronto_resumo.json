@@ -1,0 +1,19 @@
+{
+  "clientes_comparados": 10,
+  "concordancias": 4,
+  "divergencias": 6,
+  "taxa_concordancia_percentual": 40.0,
+  "criterio_deterministico": {
+    "baixo": "nenhum evento determinístico",
+    "medio": "um único evento determinístico",
+    "alto": "mais de um evento determinístico ou ocorrência das duas tipologias"
+  },
+  "clientes_divergentes": [
+    "CLI-014",
+    "CLI-023",
+    "CLI-028",
+    "CLI-013",
+    "CLI-005",
+    "CLI-026"
+  ]
+}

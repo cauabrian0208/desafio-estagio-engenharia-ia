@@ -1,0 +1,8 @@
+﻿metrica,valor
+clientes processados,10.0
+respostas válidas,10.0
+total de chamadas ao LLM,40.0
+tokens totais,61496.0
+média de tokens por cliente,6149.6
+latência total em segundos,218.1
+latência média por cliente,21.81

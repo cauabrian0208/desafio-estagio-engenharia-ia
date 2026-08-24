@@ -1,0 +1,53 @@
+candidato: "Cauã Brian Calicchio"
+
+modelo_usado: "openai/gpt-oss-20b"
+provedor: "Groq"
+
+horas_dedicadas: 5
+
+nivel_1:
+  limpeza_dados:
+    status: completo
+    caminho: "nivel_1/nivel_1.ipynb"
+
+  regras_pandas:
+    status: completo
+    caminho: "nivel_1/nivel_1.ipynb"
+
+  validacao_regras:
+    status: completo
+    caminho: "nivel_1/nivel_1.ipynb"
+
+  saida_estruturada:
+    status: completo
+    caminho: "nivel_1/nivel_1.ipynb"
+
+  comparacao_prompts:
+    status: completo
+    caminho: "nivel_1/nivel_1.ipynb"
+
+nivel_2:
+  regras_em_escala:
+    status: completo
+    caminho: "nivel_2/nivel_2.ipynb"
+
+  ferramentas:
+    status: completo
+    caminho: "nivel_2/tools.py"
+
+  agente:
+    status: completo
+    caminho: "nivel_2/agente.py"
+
+  lote:
+    status: completo
+    caminho: "outputs/lote_clientes.csv"
+
+  confronto:
+    status: completo
+    caminho: "nivel_2/confronto.py"
+
+nivel_3:
+  trilha_escolhida: "C"
+  status: completo
+  caminho: "nivel_3/app.py"
