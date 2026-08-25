@@ -1,0 +1,230 @@
+[
+  {
+    "cliente_id": "CLI-029",
+    "nivel_risco": "médio",
+    "tipologia_suspeita": "concentração de operações fracionadas em um único dia",
+    "principais_evidencias": [
+      "4 operações sinalizadas por fracionamento em 2026-05-26: OP-00301 (19418.96 BRL), OP-00300 (19138.59 BRL), OP-00299 (14326.29 BRL), OP-00302 (18413.84 BRL)",
+      "Todas as 4 operações representam 25% do total de operações do cliente (16 operações no histórico)",
+      "Nenhuma operação foi sinalizada por valor atípico"
+    ],
+    "justificativa": "O cliente possui 16 operações no histórico, com volume total de 191.385,766 BRL e mediana de 10.337,485 BRL. As 4 operações sinalizadas por fracionamento ocorreram todas no mesmo dia (26/05/2026) e somam aproximadamente 73.000 BRL, representando uma concentração significativa de movimentação em um curto período. Embora não haja sinalização de valor atípico, a repetição de fracionamento em um único dia pode indicar tentativa de mascarar a origem ou destino de recursos. O volume das operações individuais está dentro da faixa típica do cliente, mas a concentração temporal é anômala em relação ao histórico geral.",
+    "recomendacao": "Monitorar as transações futuras do cliente, solicitar documentação adicional sobre as contrapartes envolvidas nas operações de 26/05/2026 e avaliar a necessidade de aprofundamento da investigação se houver novas operações fracionadas ou valores atípicos.",
+    "resposta_valida": true,
+    "ferramentas_usadas": [
+      "operacoes_sinalizadas",
+      "operacoes_do_dia",
+      "historico_cliente"
+    ],
+    "quantidade_chamadas_llm": 4,
+    "total_tokens": 6776,
+    "latencia_total_segundos": 2.5166305999,
+    "custo_total_estimado_usd": 0.0007161,
+    "tempo_total_cliente_segundos": 2.5256016999
+  },
+  {
+    "cliente_id": "CLI-017",
+    "nivel_risco": "médio",
+    "tipologia_suspeita": "concentração de operações em um único dia com fracionamento",
+    "principais_evidencias": [
+      "Quatro operações sinalizadas (OP-00303, OP-00304, OP-00305, OP-00306) ocorreram todas no dia 2026-03-08",
+      "Todas as quatro operações foram marcadas com flag_fracionamento = true",
+      "Nenhuma das operações sinalizadas apresentou flag_valor_atipico = true",
+      "O histórico do cliente mostra 13 operações no total, com 4 operações de fracionamento, o que representa 30,8% das transações"
+    ],
+    "justificativa": "A concentração de quatro transações de fracionamento em um único dia indica um padrão de comportamento que pode ser relevante para a prevenção à lavagem de dinheiro. No entanto, a ausência de valores atípicos e a consistência do volume total do cliente com o histórico geral reduzem a probabilidade de atividade ilícita. O perfil geral do cliente não apresenta outras anomalias significativas.",
+    "recomendacao": "Monitorar as transações futuras do cliente, solicitar documentação adicional sobre a origem dos fundos envolvidos nas operações de 2026-03-08 e, se necessário, aprofundar a investigação com análise humana.",
+    "resposta_valida": true,
+    "ferramentas_usadas": [
+      "operacoes_sinalizadas",
+      "operacoes_do_dia",
+      "historico_cliente"
+    ],
+    "quantidade_chamadas_llm": 4,
+    "total_tokens": 6647,
+    "latencia_total_segundos": 32.5242833998,
+    "custo_total_estimado_usd": 0.0006621,
+    "tempo_total_cliente_segundos": 32.5326634001
+  },
+  {
+    "cliente_id": "CLI-002",
+    "nivel_risco": "médio",
+    "tipologia_suspeita": "concentração de operações fracionadas em curto prazo",
+    "principais_evidencias": [
+      "Quatro operações fracionadas foram registradas em 2026-05-01 (OP-00292, OP-00293, OP-00294, OP-00295).",
+      "Nenhuma das operações possui flag de valor atípico.",
+      "O histórico do cliente mostra 14 operações no total, com 4 fracionamentos (28,6%) e o maior valor registrado igual ao maior valor das operações sinalizadas.",
+      "Todas as operações sinalizadas ocorreram no mesmo dia, indicando possível fracionamento de um valor maior."
+    ],
+    "justificativa": "O cliente apresenta um padrão de fracionamento de valores em um único dia, mas os valores individuais não são atípicos em relação ao histórico do cliente. A concentração temporal e a repetição de fracionamento são sinais de alerta, mas não indicam, por si só, atividade ilícita. A ausência de valores atípicos reduz a gravidade do risco.",
+    "recomendacao": "Recomenda-se monitoramento contínuo das operações do cliente e solicitação de documentação adicional que comprove a origem e a finalidade das transações sinalizadas.",
+    "resposta_valida": true,
+    "ferramentas_usadas": [
+      "operacoes_sinalizadas",
+      "operacoes_do_dia",
+      "historico_cliente"
+    ],
+    "quantidade_chamadas_llm": 4,
+    "total_tokens": 6952,
+    "latencia_total_segundos": 48.2835297,
+    "custo_total_estimado_usd": 0.00072705,
+    "tempo_total_cliente_segundos": 48.2919098
+  },
+  {
+    "cliente_id": "CLI-003",
+    "nivel_risco": "médio",
+    "tipologia_suspeita": "fracionamento de valor em dia único",
+    "principais_evidencias": [
+      "Quatro operações sinalizadas por fracionamento ocorreram no mesmo dia (2026-05-02)",
+      "Nenhuma das operações sinalizadas apresentou valor atípico",
+      "O maior valor sinalizado (18.631,47 BRL) corresponde ao maior valor histórico do cliente"
+    ],
+    "justificativa": "O histórico do cliente mostra 14 operações no total, com 4 já sinalizadas por fracionamento. A concentração de todas as operações sinalizadas em um único dia sugere um padrão de fracionamento que pode indicar tentativa de estruturação. Contudo, os valores das operações não excedem o maior valor histórico e não há sinalização de valor atípico, o que reduz a evidência de atividade ilícita. Ainda assim, a concentração temporal é um fator de risco que justifica atenção adicional.",
+    "recomendacao": "Monitorar as operações futuras do cliente, solicitar documentação adicional sobre as contrapartes envolvidas nas transações do dia 2026-05-02 e encaminhar para análise humana aprofundada.",
+    "resposta_valida": true,
+    "ferramentas_usadas": [
+      "operacoes_sinalizadas",
+      "operacoes_do_dia",
+      "historico_cliente"
+    ],
+    "quantidade_chamadas_llm": 4,
+    "total_tokens": 6757,
+    "latencia_total_segundos": 37.3152247999,
+    "custo_total_estimado_usd": 0.0006933,
+    "tempo_total_cliente_segundos": 37.3231921999
+  },
+  {
+    "cliente_id": "CLI-014",
+    "nivel_risco": "baixo",
+    "tipologia_suspeita": "valor_atipico em operações de alto valor",
+    "principais_evidencias": [
+      "Três operações sinalizadas por valor atípico (23640.97, 13660.65, 21064.59 BRL)",
+      "Nenhum sinal de fracionamento nas operações sinalizadas",
+      "Histórico do cliente mostra 3 operações atípicas e 0 fracionamento, coincidindo com as sinalizações atuais"
+    ],
+    "justificativa": "As operações sinalizadas apresentam valores superiores à mediana histórica do cliente, mas são consistentes com o padrão de alto valor já presente no histórico (maior operação de 23640.97 BRL). Não há evidência de fracionamento, concentração temporal ou mudança de padrão de canais. Assim, o comportamento atual não indica um novo padrão suspeito além do já observado.",
+    "recomendacao": "Manter monitoramento contínuo das transações do cliente, solicitar documentação adicional apenas se surgirem novas operações atípicas ou se houver mudança no padrão de comportamento.",
+    "resposta_valida": true,
+    "ferramentas_usadas": [
+      "operacoes_sinalizadas",
+      "historico_cliente"
+    ],
+    "quantidade_chamadas_llm": 3,
+    "total_tokens": 4114,
+    "latencia_total_segundos": 25.0219386,
+    "custo_total_estimado_usd": 0.00043905,
+    "tempo_total_cliente_segundos": 25.0266395999
+  },
+  {
+    "cliente_id": "CLI-023",
+    "nivel_risco": "baixo",
+    "tipologia_suspeita": "valor_atipico em depósito e transferência",
+    "principais_evidencias": [
+      "Operação de depósito em espécie de R$ 41.768,17 em 28/04/2026 (flag valor_atipico)",
+      "Operação de transferência enviada via TED de R$ 65.417,17 em 01/05/2026 (flag valor_atipico)"
+    ],
+    "justificativa": "O histórico financeiro do cliente mostra 12 operações, com volume total de R$ 148.535,16 e mediana de R$ 3.241,16. As duas operações sinalizadas são as maiores do histórico e correspondem ao padrão de valor atípico já registrado (2 operações atípicas). Não há fracionamento, nem concentração de operações em uma única data. A distribuição de canais não apresenta anomalias relevantes. Assim, as operações sinalizadas não indicam um comportamento fora do padrão histórico do cliente.",
+    "recomendacao": "Manter monitoramento contínuo das transações do cliente e solicitar documentação adicional sobre as contrapartes envolvidas nas operações sinalizadas. Caso ocorram novas operações atípicas ou padrões de fracionamento, reavaliar o nível de risco.",
+    "resposta_valida": true,
+    "ferramentas_usadas": [
+      "operacoes_sinalizadas",
+      "historico_cliente"
+    ],
+    "quantidade_chamadas_llm": 3,
+    "total_tokens": 4262,
+    "latencia_total_segundos": 17.2985414999,
+    "custo_total_estimado_usd": 0.000508425,
+    "tempo_total_cliente_segundos": 17.3033228001
+  },
+  {
+    "cliente_id": "CLI-028",
+    "nivel_risco": "médio",
+    "tipologia_suspeita": "Transferências de alto valor concentradas em um único dia",
+    "principais_evidencias": [
+      "Operação OP-00308: transferência enviada de 27.715,48 BRL para Delta Trading LTDA, marcada como valor atípico",
+      "Operação OP-00307: transferência recebida de 24.875,39 BRL de Estrela Assessoria LTDA, marcada como valor atípico",
+      "Ambas as operações ocorreram no mesmo dia (2026‑03‑21) e representam os maiores valores do histórico do cliente"
+    ],
+    "justificativa": "O cliente possui 12 operações no histórico, com média de valor muito menor (mediana 4.430,25 BRL). As duas maiores operações foram sinalizadas como valor atípico e ocorreram no mesmo dia, indicando uma concentração de transações de alto valor. Não há evidência de fracionamento ou de outras operações atípicas no mesmo período.",
+    "recomendacao": "Recomenda-se monitoramento contínuo das transações do cliente, solicitação de documentação que comprove a origem dos fundos envolvidos nas operações sinalizadas e análise humana adicional para avaliar a necessidade de diligência mais aprofundada.",
+    "resposta_valida": true,
+    "ferramentas_usadas": [
+      "operacoes_sinalizadas",
+      "operacoes_do_dia",
+      "historico_cliente"
+    ],
+    "quantidade_chamadas_llm": 4,
+    "total_tokens": 6432,
+    "latencia_total_segundos": 30.0802177999,
+    "custo_total_estimado_usd": 0.00071325,
+    "tempo_total_cliente_segundos": 30.0881348
+  },
+  {
+    "cliente_id": "CLI-013",
+    "nivel_risco": "médio",
+    "tipologia_suspeita": "concentração de operações de alto valor em um único dia",
+    "principais_evidencias": [
+      "Operação OP-00310: saque de R$28.487,76 em 2026-03-06 via TED, flag de valor atípico",
+      "Operação OP-00309: depósito de R$26.754,23 em 2026-03-06 via TED, flag de valor atípico",
+      "Concentração de duas operações de alto valor no mesmo dia (2026-03-06)",
+      "Histórico geral do cliente: 10 operações, volume total de R$81.731, mediana de R$3.146, sem fracionamento"
+    ],
+    "justificativa": "As duas operações sinalizadas representam a maior parte do volume total do cliente e ocorreram no mesmo dia, indicando uma concentração de valor atípico. Embora não haja fracionamento nem outras operações suspeitas, a ocorrência simultânea de duas transações de alto valor em um único dia é um padrão que pode indicar tentativa de ocultar a origem de recursos ou facilitar movimentação de fundos. O histórico geral do cliente mostra poucos casos de valor atípico (2 de 10 operações) e nenhuma operação fracionada, o que reforça que o padrão observado é atípico em relação ao comportamento habitual.",
+    "recomendacao": "Recomenda-se monitoramento contínuo das operações do cliente, solicitação de documentação adicional sobre a origem dos fundos dessas transações e análise humana aprofundada para avaliar a necessidade de diligência adicional.",
+    "resposta_valida": true,
+    "ferramentas_usadas": [
+      "operacoes_sinalizadas",
+      "operacoes_do_dia",
+      "historico_cliente"
+    ],
+    "quantidade_chamadas_llm": 4,
+    "total_tokens": 6020,
+    "latencia_total_segundos": 30.8128048,
+    "custo_total_estimado_usd": 0.0006468,
+    "tempo_total_cliente_segundos": 30.8208185
+  },
+  {
+    "cliente_id": "CLI-005",
+    "nivel_risco": "baixo",
+    "tipologia_suspeita": "valor_atipico em operações de pagamento e transferência recebida",
+    "principais_evidencias": [
+      "Operação OP-00049: transferência recebida de 11.988,17 BRL em 12/04/2026, canal espécie, flag valor_atipico",
+      "Operação OP-00043: pagamento de 30.743,97 BRL em 14/03/2026, canal cartão, flag valor_atipico",
+      "Histórico geral: 11 operações, volume total 64.742,66 BRL, mediana 2.144,18 BRL, maior operação 30.743,97 BRL, 0 fracionamento, 2 operações valor_atipico"
+    ],
+    "justificativa": "As duas operações sinalizadas são as maiores do histórico do cliente e apresentam valor atípico, mas não há concentração temporal, fracionamento ou outros padrões de risco. O histórico geral mostra que valores semelhantes já ocorreram sem sinais adicionais de irregularidade. Assim, não há evidências suficientes para indicar lavagem de dinheiro ou fraude.",
+    "recomendacao": "Monitorar as próximas operações do cliente, solicitar documentação adicional se houver novas transações de valor elevado ou fora do padrão habitual.",
+    "resposta_valida": true,
+    "ferramentas_usadas": [
+      "operacoes_sinalizadas",
+      "historico_cliente"
+    ],
+    "quantidade_chamadas_llm": 3,
+    "total_tokens": 4118,
+    "latencia_total_segundos": 22.1377588001,
+    "custo_total_estimado_usd": 0.00045645,
+    "tempo_total_cliente_segundos": 22.1426476
+  },
+  {
+    "cliente_id": "CLI-026",
+    "nivel_risco": "médio",
+    "tipologia_suspeita": "valor atípico em transações de alto valor",
+    "principais_evidencias": [
+      "Operação OP-00253: pagamento via PIX de R$21.261,01 em 17/05/2026, marcada como valor atípico",
+      "Operação OP-00247: saque via cartão de R$12.518,30 em 01/03/2026, marcada como valor atípico",
+      "Histórico do cliente: 12 operações, 2 marcadas como valor atípico, sem fracionamento, maior operação igual a R$21.261,01"
+    ],
+    "justificativa": "As duas operações sinalizadas são de alto valor e foram marcadas como atípicas, mas correspondem ao maior valor já registrado no histórico do cliente e não apresentam fracionamento nem concentração em uma única data. O perfil geral do cliente mostra 12 transações, 2 com valor atípico, o que indica um padrão de risco moderado, mas não evidencia um comportamento anômalo que justifique suspeita de lavagem de dinheiro.",
+    "recomendacao": "Manter monitoramento contínuo das transações de alto valor e solicitar documentação adicional (por exemplo, comprovante de origem dos recursos) para as operações sinalizadas.",
+    "resposta_valida": true,
+    "ferramentas_usadas": [
+      "operacoes_sinalizadas",
+      "historico_cliente"
+    ],
+    "quantidade_chamadas_llm": 3,
+    "total_tokens": 4117,
+    "latencia_total_segundos": 15.1091670998,
+    "custo_total_estimado_usd": 0.000467175,
+    "tempo_total_cliente_segundos": 25.5992345001
+  }
+]
