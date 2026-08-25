@@ -558,26 +558,18 @@ docs/USO_DE_IA.md
 
 # Conclusão
 
-A solução utiliza uma arquitetura híbrida:
+O principal aprendizado deste desafio foi perceber que as regras e o LLM têm
+papéis diferentes.
 
-```text
-Dados
-  ↓
-Tratamento com pandas
-  ↓
-Regras determinísticas
-  ↓
-Priorização
-  ↓
-Agente com ferramentas
-  ↓
-Parecer estruturado
-  ↓
-Confronto regras x agente
-  ↓
-Interface para análise humana
-```
+As regras foram úteis para produzir uma triagem objetiva e reproduzível, mas o
+confronto mostrou que simplesmente acumular sinalizações pode elevar demais o
+risco de alguns clientes.
 
-A principal decisão foi manter cálculos objetivos e auditáveis fora do LLM.
+O agente ajudou a adicionar contexto a esses casos, mas também mostrou uma
+limitação importante: no caso `CLI-013`, por exemplo, a classificação pareceu
+razoável, enquanto parte da justificativa foi além do que os dados permitiam
+afirmar.
 
-O modelo é utilizado como uma camada de interpretação das evidências e apoio à triagem, mantendo a revisão humana como parte essencial do processo.
+Por isso, mantive os cálculos e limites no pandas e utilizei o LLM somente como
+uma camada de interpretação. Para este tipo de problema, eu não trataria a saída
+do modelo como decisão final sem revisão humana.

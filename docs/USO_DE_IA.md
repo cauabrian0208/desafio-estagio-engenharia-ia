@@ -1,58 +1,36 @@
 # Uso de Inteligência Artificial
 
-Durante o desenvolvimento do desafio utilizei principalmente o **ChatGPT**
-como ferramenta de apoio.
+Durante o desenvolvimento utilizei principalmente o **ChatGPT** como ferramenta
+de apoio.
 
-A IA foi utilizada para:
+Usei a ferramenta para discutir abordagens, entender erros, revisar código,
+estruturar prompts, desenvolver o agente com tool calling, apoiar a interface em
+Streamlit e revisar a documentação.
 
-- discutir possíveis abordagens para os requisitos;
-- auxiliar na estruturação e revisão do código;
-- explicar erros encontrados durante a implementação;
-- revisar os prompts utilizados com o LLM;
-- apoiar a implementação do agente com tool calling;
-- auxiliar na interface Streamlit;
-- revisar a documentação e a organização final do projeto.
+Também utilizei o **Devin** na etapa final como uma segunda opinião para revisar
+o repositório. Já conhecia a ferramenta e costumo utilizá-la para estudar e
+praticar tarefas relacionadas a engenharia de software com IA.
 
-As sugestões não foram consideradas automaticamente corretas. O código foi
-executado localmente e os resultados foram conferidos com os dados e requisitos
-do desafio.
+Neste desafio, usei o Devin principalmente para comparar a implementação com o
+documento oficial, revisar a estrutura do repositório, conferir outputs e
+métricas e procurar possíveis problemas antes da entrega.
 
-## Um caminho inadequado sugerido pela IA
+## Um caso em que a IA me levou para o caminho errado
 
-Durante os primeiros testes do agente, algumas respostas apresentaram
-conclusões e recomendações mais fortes do que as evidências disponíveis
-permitiam, incluindo sugestões de ações sobre contas e inferências sobre uma
+Durante os primeiros testes do agente, algumas respostas fizeram inferências e
+recomendações mais fortes do que os dados permitiam, incluindo conclusões sobre
 possível origem ilícita dos recursos.
 
-Os dados do desafio não eram suficientes para sustentar essas conclusões.
+Percebi que as evidências disponíveis não eram suficientes para sustentar esse
+tipo de afirmação e revisei o prompt do agente. Passei a deixar explícito que uma
+flag é apenas um sinal de triagem, que informações ausentes não devem ser
+inventadas e que a decisão final depende de revisão humana.
 
-A partir desse problema, revisei o prompt do agente para deixar explícito que:
+Na revisão final também houve uma sugestão de que o formato visual usado no
+exemplo do `ENTREGA.yaml` seria obrigatório. Voltei ao documento original antes
+de fazer a alteração e confirmei que aquilo era apenas uma forma válida de
+representar a estrutura YAML.
 
-- as flags representam sinais de triagem;
-- comportamento atípico não comprova atividade ilícita;
-- informações ausentes não devem ser inventadas;
-- recomendações devem ser proporcionais às evidências;
-- a decisão final depende de revisão humana.
-
-Outro ajuste necessário ocorreu quando uma sugestão inicial utilizava um modelo
-que não estava disponível na conta utilizada. O erro retornado pela API foi
-verificado e a implementação foi adaptada para o modelo disponível:
-
-`openai/gpt-oss-20b`
-
-Também foi necessário adaptar o processamento aos limites reais da API,
-implementando retry para situações de rate limit.
-
-## Validação
-
-As sugestões de IA foram validadas por meio de:
-
-- execução local do código;
-- inspeção das saídas;
-- conferência das regras determinísticas;
-- comparação entre regras e agente;
-- testes manuais da interface.
-
-A IA foi usada como ferramenta de assistência ao desenvolvimento. A validação
-final permaneceu baseada no funcionamento do código, nos dados fornecidos e nos
-requisitos do desafio.
+As sugestões das ferramentas de IA foram usadas como apoio e conferidas por meio
+da execução do código, inspeção dos outputs e comparação com os requisitos do
+desafio.
