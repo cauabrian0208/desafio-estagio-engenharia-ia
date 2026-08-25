@@ -1,484 +1,288 @@
 # Decisões Técnicas
 
-Este documento registra as principais decisões de arquitetura, trade-offs,
-limitações e possíveis evoluções da solução desenvolvida para o desafio.
+Este documento registra as principais escolhas de arquitetura, os trade-offs
+assumidos, as limitações da solução e o que eu evoluiria com mais tempo.
 
 ---
 
-## 1. Separação entre regras determinísticas e LLM
+## 1. Regras determinísticas separadas do LLM
 
-Uma das principais decisões do projeto foi manter cálculos e regras
-determinísticas separados da interpretação realizada pelo modelo de linguagem.
+A principal decisão de arquitetura foi manter cálculos e regras fora do modelo
+de linguagem.
 
-Operações como:
-
-- soma;
-- contagem;
-- mediana;
-- comparação com limites;
-- identificação de fracionamento;
-- detecção de valor atípico;
-
-foram realizadas com Python e pandas.
-
-O LLM foi utilizado somente depois que esses resultados já estavam calculados,
-com a responsabilidade de interpretar as evidências e gerar um parecer textual.
+Soma, contagem, mediana, conversão de moeda, fracionamento e identificação de
+valores atípicos são calculados com Python e pandas. O LLM recebe essas
+evidências já estruturadas e é utilizado somente para interpretação e geração
+do parecer.
 
 ### Trade-off
 
-Uma alternativa seria enviar todo o conjunto de operações diretamente para o
-LLM e pedir que ele detectasse padrões.
+Uma alternativa seria enviar todas as operações diretamente ao LLM e pedir que
+ele identificasse os padrões.
 
-Essa abordagem seria mais simples de implementar, porém teria maior risco de:
+Isso simplificaria parte do código, mas aumentaria o risco de erros numéricos,
+resultados não reproduzíveis, maior consumo de tokens e dificuldade de
+auditoria.
 
-- erros numéricos;
-- resultados não reproduzíveis;
-- maior consumo de tokens;
-- dificuldade de auditoria;
-- mistura entre cálculo e interpretação.
-
-Por isso, foi adotada uma abordagem híbrida, em que pandas produz evidências
-objetivas e o modelo atua sobre essas evidências.
+Preferi uma arquitetura híbrida porque as regras ficam objetivas e
+reproduzíveis, enquanto o modelo é utilizado onde interpretação textual é mais
+útil.
 
 ---
 
 ## 2. Tratamento dos dados
 
-Foram identificados problemas de qualidade nos dados, principalmente:
+Registros duplicados são removidos pelo identificador da operação.
 
-- registros duplicados;
-- datas ausentes;
-- valores em moedas diferentes.
+Datas ausentes são preservadas como valores nulos. Dessa forma, a operação ainda
+pode ser utilizada em análises que não dependem da dimensão temporal, mas não
+participa de regras que exigem agrupamento por data.
 
-Os registros duplicados foram removidos pelo identificador da operação.
-
-As datas ausentes foram preservadas como valores nulos. Essas operações
-continuaram válidas para análises que não dependiam de tempo, mas foram
-excluídas de agrupamentos por data.
-
-Os valores em USD foram convertidos para BRL utilizando exclusivamente a taxa
-de câmbio fornecida no próprio arquivo.
+Valores em USD são convertidos para BRL exclusivamente pela taxa disponibilizada
+nos próprios dados.
 
 ### Trade-off
 
-Uma alternativa seria remover completamente registros sem data.
-
-Essa opção foi descartada porque eliminaria informações financeiras ainda
-úteis para outras análises.
-
----
-
-## 3. Regras determinísticas
-
-Foram implementadas duas regras:
-
-### Fracionamento
-
-Um cliente é sinalizado quando realiza, na mesma data:
-
-- três ou mais operações;
-- soma superior a R$ 50.000;
-- nenhuma operação isolada igual ou superior a R$ 20.000.
-
-### Valor atípico
-
-Uma operação é sinalizada quando seu valor em BRL é superior a cinco vezes a
-mediana das operações daquele cliente.
-
-A regra é aplicada apenas a clientes com quatro ou mais operações.
-
-### Limitação
-
-Essas regras foram utilizadas como mecanismos de triagem.
-
-Elas não devem ser interpretadas como comprovação de lavagem de dinheiro ou
-de qualquer comportamento ilícito.
+Excluir todas as operações sem data simplificaria o processamento, mas também
+descartaria informações financeiras ainda úteis. Por isso, optei por preservar
+esses registros quando possível.
 
 ---
 
-## 4. Uso do LLM no Nível 1
+## 3. Regras como mecanismo de triagem
 
-Foram testadas duas versões de prompt.
+As regras determinísticas foram tratadas como sinais de priorização e não como
+comprovação de lavagem de dinheiro, fraude ou outro ilícito.
 
-A primeira versão fornecia instruções mais simples.
+Isso é importante porque as regras foram propositalmente construídas com poucos
+critérios e podem produzir falsos positivos.
 
-A segunda adicionava restrições explícitas para:
+No confronto com o agente, também foi necessário criar uma classificação
+determinística de risco:
 
-- utilizar somente os fatos disponíveis;
-- não realizar novos cálculos;
+- baixo: nenhum evento;
+- médio: um evento;
+- alto: dois ou mais eventos ou ocorrência das duas tipologias.
+
+Esse critério existe apenas para permitir a comparação solicitada no desafio e
+não representa uma metodologia real de classificação de risco bancário.
+
+Para o ranking do Top 10, cada operação marcada pelas regras é contabilizada
+como uma sinalização. No confronto de risco, operações de fracionamento do mesmo
+cliente e da mesma data são consolidadas como um único evento, pois fazem parte
+do mesmo episódio.
+
+---
+
+## 4. Prompts e controle de inferências
+
+No Nível 1 foram comparadas duas estratégias de prompt.
+
+A abordagem com instruções mais restritivas apresentou melhor controle sobre a
+resposta e foi usada como referência no agente do Nível 2.
+
+O agente foi instruído a:
+
+- utilizar somente as evidências disponíveis;
 - não inventar contexto;
-- diferenciar comportamento atípico de comprovação de ilícito.
+- não realizar cálculos que deveriam ser feitos pelas ferramentas;
+- tratar flags como sinais de triagem;
+- evitar afirmações sobre intenção criminosa sem evidência;
+- manter recomendações proporcionais e sujeitas à revisão humana.
 
-A segunda abordagem apresentou respostas mais objetivas e controladas.
+Mesmo com essas restrições, o lote mostrou que o LLM ainda pode produzir
+inferências excessivas. No caso CLI-013, por exemplo, a classificação de risco
+foi considerada razoável, mas parte da justificativa extrapolou o que os dados
+permitiam afirmar.
 
-Por isso, instruções semelhantes foram reutilizadas posteriormente no agente
-do Nível 2.
-
----
-
-## 5. Escolha do modelo
-
-Foi utilizado o modelo:
-
-`openai/gpt-oss-20b`
-
-por meio da API da Groq.
-
-A escolha foi baseada principalmente em:
-
-- disponibilidade na camada gratuita utilizada durante o desafio;
-- suporte a chamadas estruturadas;
-- suporte a tool calling;
-- velocidade de resposta;
-- possibilidade de registrar tokens consumidos.
-
-Inicialmente foi testado outro modelo da Groq, mas a conta utilizada não
-possuía acesso a ele. A solução foi adaptada para um modelo disponível.
+Essa ocorrência foi mantida como uma limitação da solução, em vez de considerar
+a saída do modelo automaticamente correta.
 
 ---
 
-## 6. Segurança das credenciais
+## 5. Agente com seleção dinâmica de ferramentas
 
-A chave da API foi mantida no arquivo `.env`.
-
-O repositório contém apenas `.env.example`, sem valores reais.
-
-Durante o desenvolvimento, a chave chegou a ser adicionada por engano a um
-commit local.
-
-O GitHub Push Protection detectou o segredo e bloqueou o envio.
-
-A credencial foi removida do commit e o `.gitignore` da raiz foi corrigido
-para impedir o versionamento do `.env`.
-
-Essa situação reforçou a importância de tratar credenciais como informação
-sensível e manter secrets fora do controle de versão.
-
----
-
-## 7. Arquitetura do agente
-
-No Nível 2, o agente não recebe toda a base diretamente.
-
-Ele possui ferramentas que consultam informações específicas:
+O agente do Nível 2 possui quatro ferramentas:
 
 - `historico_cliente`
 - `operacoes_do_dia`
 - `perfil_canal`
 - `operacoes_sinalizadas`
 
-A decisão de quais ferramentas utilizar é realizada pelo próprio modelo.
+A decisão de quais ferramentas utilizar é feita dinamicamente pelo modelo.
 
 ### Trade-off
 
-Uma implementação mais simples poderia executar todas as ferramentas para
-todos os clientes antes de chamar o modelo.
+Uma alternativa seria executar todas as ferramentas para todos os clientes antes
+de consultar o LLM.
 
-Essa abordagem foi evitada porque isso transformaria o agente em um fluxo
-fixo, além de aumentar:
+Isso seria mais previsível, porém transformaria o agente em um fluxo praticamente
+fixo e enviaria informações desnecessárias ao modelo.
 
-- uso de tokens;
-- latência;
-- quantidade de dados enviados ao modelo.
+A seleção dinâmica reduz dados enviados, tokens e chamadas desnecessárias e
+também demonstra comportamento realmente orientado por ferramentas.
 
-O agente foi instruído a consultar apenas as ferramentas necessárias para
-cada investigação.
-
-Durante os testes, clientes com diferentes tipos de sinalização utilizaram
-sequências diferentes de ferramentas.
+A desvantagem é que a qualidade da investigação passa a depender também da
+decisão do modelo sobre quais ferramentas consultar.
 
 ---
 
-## 8. Controle de inferências do agente
+## 6. Execução em lote, custo e rate limit
 
-Uma versão inicial do agente produziu recomendações excessivamente fortes,
-como bloqueio de conta e afirmações relacionadas à possibilidade de origem
-ilícita dos recursos.
+Tokens, custo estimado e latência são registrados em cada chamada ao modelo e
+posteriormente analisados com pandas.
 
-Essas conclusões não eram sustentadas pelos dados disponíveis.
+Durante o lote ocorreram limites temporários da API. Para impedir a interrupção
+do processamento, foi implementado retry com espera antes de novas tentativas.
 
-Por isso, o prompt do agente foi alterado para deixar explícito que:
-
-- flags são sinais de triagem;
-- ausência de evidência não deve ser preenchida por suposição;
-- o modelo não deve afirmar intenção criminosa;
-- recomendações devem ser proporcionais;
-- a conclusão deve apoiar análise humana.
-
-Essa mudança reduziu inferências não justificadas e tornou os pareceres mais
-conservadores.
-
----
-
-## 9. Execução em lote e limites da API
-
-O agente foi executado sobre os 10 clientes mais priorizados.
-
-Durante a execução foi encontrado um limite de tokens por minuto da API
-utilizada.
-
-Para evitar falhas no processamento em lote, foi implementado retry com espera
-progressiva.
-
-Também foi adicionada uma pausa entre clientes.
+Também foi utilizada uma pausa entre alguns clientes.
 
 ### Trade-off
 
-Essa abordagem aumenta a duração total do processamento, mas evita falhas por
-rate limit e permite concluir o lote sem intervenção manual.
+O retry aumenta o tempo total de processamento, mas é preferível a perder uma
+execução longa no meio do lote.
 
-Em um ambiente de produção, eu consideraria:
-
-- filas assíncronas;
-- controle centralizado de rate limit;
-- cache de respostas;
-- processamento paralelo respeitando a cota disponível.
+Em produção, eu substituiria essa solução simples por controle centralizado de
+rate limit, filas e políticas de retry com backoff.
 
 ---
 
-## 10. Métricas do agente
+## 7. Confronto entre regras e agente
 
-Na execução dos 10 clientes foram registrados:
+A comparação entre as regras determinísticas e o agente não foi tratada como uma
+competição em que uma das abordagens precisa sempre estar correta.
 
-- número de chamadas ao LLM;
-- tokens de entrada e saída;
-- total de tokens;
-- latência por cliente;
-- latência total.
+As regras são objetivas e reproduzíveis, mas possuem pouco contexto.
 
-No lote final foram realizadas 40 chamadas ao LLM, com 61.496 tokens no total.
+O agente consegue considerar evidências adicionais, porém continua sujeito a
+inferências inconsistentes.
 
-A média foi de aproximadamente 6.149 tokens por cliente e 21,81 segundos de
-latência por cliente.
+Por isso, as divergências foram analisadas individualmente.
 
-Essas métricas permitem avaliar o custo operacional do agente e identificar
-oportunidades de otimização.
+Em alguns clientes, o agente produziu uma priorização mais proporcional. Em
+outros, tanto a regra quanto o agente pareceram extremos e uma classificação
+intermediária seria mais adequada.
 
----
-
-## 11. Confronto entre regras e agente
-
-Foi definido um critério determinístico de risco para permitir comparação com
-o agente.
-
-O critério utilizado foi:
-
-- baixo: nenhum evento determinístico;
-- médio: um evento;
-- alto: dois ou mais eventos, ou ocorrência de duas tipologias.
-
-O confronto apresentou:
-
-- 10 clientes comparados;
-- 4 concordâncias;
-- 6 divergências;
-- taxa de concordância de 40%.
-
-As divergências ocorreram nos clientes sinalizados por múltiplas operações de
-valor atípico.
-
-Nesses casos, a regra classificou risco alto devido à quantidade de eventos,
-enquanto o agente manteve risco médio ao considerar a ausência de outros sinais,
-como fracionamento ou concentração temporal.
-
-Essa divergência foi considerada relevante.
-
-O objetivo do agente não é reproduzir mecanicamente as regras, mas utilizar
-contexto adicional para complementar a triagem.
-
-Uma taxa de concordância baixa, isoladamente, não significa que o agente está
-errado.
-
-As divergências devem ser analisadas individualmente.
+Essa análise reforçou a escolha de utilizar o LLM como apoio ao analista, e não
+como mecanismo automático de decisão final.
 
 ---
 
-## 12. Limitações do confronto
+## 8. Escolha da Trilha C no Nível 3
 
-O critério determinístico de risco foi criado exclusivamente para permitir a
-comparação solicitada no desafio.
-
-Ele não representa uma metodologia real de classificação de risco de PLD.
-
-Em um ambiente real, seria necessário considerar muitos outros fatores, como:
-
-- perfil cadastral;
-- atividade econômica;
-- histórico temporal mais extenso;
-- relacionamentos entre contas;
-- dados de beneficiários;
-- jurisdição;
-- listas restritivas;
-- comportamento esperado do cliente.
-
----
-
-## 13. Escolha do Nível 3
-
-Foi escolhida a:
-
-### Trilha C — Interface Conversacional
-
-A escolha foi feita porque a interface permite aproveitar diretamente os
-resultados e pareceres produzidos no Nível 2.
-
-A aplicação foi implementada com Streamlit.
-
-O analista consegue:
-
-- selecionar clientes;
-- visualizar risco do agente;
-- visualizar risco determinístico;
-- consultar a análise estruturada;
-- solicitar explicação de um caso;
-- gerar um parecer resumido;
-- comparar dois clientes;
-- fazer perguntas adicionais;
-- manter memória da conversa.
-
-Essa interface aproxima a solução de um cenário de uso por um analista humano,
-em vez de limitar o resultado a arquivos de saída.
-
-A Trilha C exige uma interface conversacional com memória e suporte a
-explicação, comparação e geração de parecer, e foi escolhida por aproveitar
-diretamente o trabalho desenvolvido nos níveis anteriores. 
-
----
-
-## 14. Memória da interface
-
-A memória da conversa foi implementada utilizando o estado de sessão do
+Para o Nível 3 escolhi a Trilha C e implementei uma interface conversacional com
 Streamlit.
 
-As mensagens anteriores são mantidas durante a sessão e enviadas novamente ao
-modelo quando o analista faz uma nova pergunta.
+Considerei que essa trilha aproveitaria melhor os resultados produzidos nos
+níveis anteriores e permitiria demonstrar um fluxo próximo ao de um analista
+utilizando a solução.
 
-Isso permite perguntas contextuais.
+A interface permite consultar um cliente, gerar explicações e pareceres,
+comparar clientes e continuar a conversa utilizando memória durante a sessão.
 
-Por exemplo:
+A memória é separada conforme o contexto da análise para evitar que uma conversa
+sobre um cliente seja reutilizada indevidamente ao trocar para outro caso.
 
-1. o analista solicita a explicação de um cliente;
-2. depois pergunta apenas "Quais são as limitações dessa conclusão?";
-3. a aplicação mantém o contexto e responde sobre o mesmo caso.
+### Trade-off
 
-### Limitação
+A memória existe somente na sessão do Streamlit e não é persistente.
 
-A memória existe apenas durante a sessão atual.
-
-Ela não é persistida em banco de dados.
-
-Em uma aplicação real, seria necessário implementar armazenamento persistente,
-controle de acesso e políticas de retenção.
+Isso simplifica a implementação e é suficiente para o desafio, mas uma aplicação
+real precisaria armazenar sessões e decisões de forma auditável.
 
 ---
 
-## 15. Limitações gerais da solução
+## 9. Segurança e credenciais
 
-A solução foi desenvolvida para um conjunto pequeno de dados fictícios.
+A chave da API não fica no código.
 
-Ela não contempla:
+Ela é carregada a partir de `.env`, enquanto o repositório disponibiliza apenas
+`.env.example`.
 
-- autenticação;
-- autorização por usuário;
-- persistência de sessões;
+O `.env` é ignorado pelo Git.
+
+Em um ambiente real, eu substituiria o arquivo local por um serviço próprio de
+gestão de secrets e adicionaria controle de acesso e auditoria.
+
+---
+
+## 10. Limitações
+
+A solução utiliza dados fictícios e uma quantidade pequena de operações.
+
+Ela não possui informações suficientes para representar um sistema real de PLD,
+como perfil cadastral completo, atividade econômica, histórico de longo prazo,
+relações entre contas, informações de beneficiários, jurisdições e listas
+restritivas.
+
+Também não foram implementados:
+
+- autenticação e autorização;
 - banco de dados;
-- processamento distribuído;
-- monitoramento em tempo real;
-- observabilidade completa;
-- avaliação automática de qualidade do LLM;
-- versionamento de prompts;
-- testes de regressão de prompts;
-- mecanismos formais de human-in-the-loop;
+- persistência das conversas;
+- observabilidade centralizada;
+- testes automáticos de regressão dos prompts;
+- avaliação automatizada da qualidade do LLM;
+- proteção completa contra prompt injection;
 - integração com sistemas bancários reais.
 
-Além disso, respostas de modelos de linguagem podem variar mesmo com
-temperaturas baixas.
+Além disso, respostas do LLM podem variar e uma justificativa aparentemente
+coerente não garante que todas as inferências estejam sustentadas pelos dados.
+
+Por isso, as classificações devem ser interpretadas como apoio à triagem humana.
 
 ---
 
-## 16. O que faria com mais tempo
-
-Com mais tempo, as principais evoluções seriam:
-
-### Cache
-
-Implementaria cache baseado em:
-
-- cliente;
-- prompt;
-- versão do modelo;
-- conjunto de evidências.
-
-Isso reduziria custo, latência e impacto de limites da API.
-
-### Persistência
-
-Utilizaria um banco de dados para armazenar:
-
-- investigações;
-- pareceres;
-- histórico de conversas;
-- decisões do analista;
-- métricas de execução.
+## 11. O que faria com mais tempo
 
 ### Avaliação do LLM
 
-Criaria um conjunto fixo de casos de teste e métricas para comparar:
+Criaria um conjunto fixo de casos de teste com resultados esperados e executaria
+avaliações periódicas para comparar prompts e modelos.
 
-- diferentes prompts;
-- diferentes modelos;
-- estabilidade das classificações;
-- aderência às evidências.
+Validaria principalmente aderência às evidências, estabilidade do risco,
+ocorrência de informações inventadas e qualidade das recomendações.
+
+### Persistência
+
+Utilizaria PostgreSQL ou outra base relacional para armazenar investigações,
+pareceres, conversas, decisões humanas e métricas.
+
+Isso permitiria histórico, auditoria e continuidade das análises.
 
 ### Observabilidade
 
-Registraria:
+Centralizaria logs de chamadas, tokens, custo, latência, ferramentas utilizadas,
+retries, versões de prompt e versões de modelo.
 
-- tokens;
-- latência;
-- ferramenta selecionada;
-- erros;
-- retries;
-- versão do prompt;
-- versão do modelo.
+Também criaria alertas para aumento de custo, falhas e mudanças relevantes no
+comportamento do agente.
 
 ### Segurança
 
-Adicionaria:
+Adicionaria autenticação, autorização por perfil, gestão centralizada de
+segredos, sanitização de entradas, proteção contra prompt injection e políticas
+de retenção de dados.
 
-- autenticação;
-- autorização;
-- auditoria;
-- gestão centralizada de secrets;
-- proteção contra prompt injection;
-- sanitização de entradas;
-- controles sobre dados sensíveis.
+### Processamento em escala
 
-### Arquitetura
+Separaria ingestão, motor de regras, serviço de ferramentas, agente e interface.
 
-Em um cenário maior, separaria o sistema em componentes:
-
-1. pipeline de ingestão e limpeza;
-2. motor de regras;
-3. serviço de ferramentas;
-4. serviço do agente;
-5. armazenamento de resultados;
-6. interface para analistas.
+O processamento do lote passaria a utilizar filas, workers e controle de rate
+limit, em vez de pausas realizadas durante uma execução local.
 
 ---
 
-## 17. Conclusão das decisões
+## Conclusão
 
-A principal escolha arquitetural foi tratar o LLM como uma camada de
-interpretação sobre evidências previamente calculadas.
+A principal decisão do projeto foi manter evidências objetivas e cálculos
+auditáveis fora do LLM.
 
-As regras determinísticas mantêm o comportamento objetivo e auditável.
+As regras determinísticas oferecem consistência e rastreabilidade, enquanto o
+agente adiciona contexto e flexibilidade.
 
-O agente adiciona contexto e flexibilidade.
+A interface coloca essas duas abordagens à disposição de um analista humano.
 
-A interface permite que um analista humano explore os resultados e questione
-as conclusões.
-
-A solução não pretende automatizar decisões finais de PLD, mas demonstrar como
-regras, ferramentas e modelos de linguagem podem trabalhar juntos para apoiar
-uma triagem humana.
+A solução não tenta automatizar uma decisão final de PLD. O objetivo é demonstrar
+como regras, ferramentas e modelos de linguagem podem ser combinados para apoiar
+uma triagem mais contextualizada e ainda manter espaço para revisão humana.

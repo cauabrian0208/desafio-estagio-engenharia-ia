@@ -25,9 +25,12 @@ CAMINHO_OUTPUTS = RAIZ_PROJETO / "outputs"
 CAMINHO_LOTE = CAMINHO_OUTPUTS / "lote_clientes.json"
 CAMINHO_CONFRONTO = CAMINHO_OUTPUTS / "confronto.csv"
 
-load_dotenv(RAIZ_PROJETO / ".env")
+load_dotenv(
+    dotenv_path=RAIZ_PROJETO / ".env",
+    override=True,
+)
 
-api_key = os.getenv("GROQ_API_KEY")
+api_key = (os.getenv("GROQ_API_KEY") or "").strip()
 
 if not api_key:
     st.error(
@@ -37,6 +40,7 @@ if not api_key:
     st.stop()
 
 client = Groq(api_key=api_key)
+MODELO = "openai/gpt-oss-20b"
 
 
 # ============================================================
@@ -58,6 +62,28 @@ def carregar_resultados():
         lote = json.load(arquivo)
 
     df_lote = pd.DataFrame(lote)
+
+    colunas_lote_obrigatorias = [
+        "cliente_id",
+        "nivel_risco",
+        "tipologia_suspeita",
+        "principais_evidencias",
+        "justificativa",
+        "recomendacao",
+    ]
+
+    colunas_ausentes = [
+        coluna
+        for coluna in colunas_lote_obrigatorias
+        if coluna not in df_lote.columns
+    ]
+
+    if colunas_ausentes:
+        raise ValueError(
+            "Colunas obrigatórias ausentes em "
+            "outputs/lote_clientes.json: "
+            + ", ".join(colunas_ausentes)
+        )
 
     if CAMINHO_CONFRONTO.exists():
         df_confronto = pd.read_csv(
@@ -83,6 +109,39 @@ except Exception as erro:
 # FUNÇÕES AUXILIARES
 # ============================================================
 
+def limpar_valores(valor):
+    """
+    Converte NaN/NaT em None e percorre estruturas
+    aninhadas para produzir um contexto seguro para JSON.
+    """
+
+    if isinstance(valor, dict):
+        return {
+            chave: limpar_valores(conteudo)
+            for chave, conteudo in valor.items()
+        }
+
+    if isinstance(valor, list):
+        return [
+            limpar_valores(item)
+            for item in valor
+        ]
+
+    if isinstance(valor, tuple):
+        return [
+            limpar_valores(item)
+            for item in valor
+        ]
+
+    try:
+        if pd.isna(valor):
+            return None
+    except (TypeError, ValueError):
+        pass
+
+    return valor
+
+
 def obter_cliente(cliente_id):
     linha = df_lote[
         df_lote["cliente_id"] == cliente_id
@@ -91,11 +150,16 @@ def obter_cliente(cliente_id):
     if linha.empty:
         return None
 
-    return linha.iloc[0].to_dict()
+    return limpar_valores(
+        linha.iloc[0].to_dict()
+    )
 
 
 def obter_confronto(cliente_id):
     if df_confronto.empty:
+        return None
+
+    if "cliente_id" not in df_confronto.columns:
         return None
 
     linha = df_confronto[
@@ -105,7 +169,9 @@ def obter_confronto(cliente_id):
     if linha.empty:
         return None
 
-    return linha.iloc[0].to_dict()
+    return limpar_valores(
+        linha.iloc[0].to_dict()
+    )
 
 
 def montar_contexto_cliente(cliente_id):
@@ -122,136 +188,247 @@ def montar_contexto_cliente(cliente_id):
 
     contexto = {
         "cliente_id": cliente_id,
-        "nivel_risco_agente":
-            cliente.get("nivel_risco"),
-
-        "tipologia_suspeita":
-            cliente.get("tipologia_suspeita"),
-
-        "principais_evidencias":
-            cliente.get("principais_evidencias"),
-
-        "justificativa":
-            cliente.get("justificativa"),
-
-        "recomendacao":
-            cliente.get("recomendacao"),
-
-        "ferramentas_usadas":
-            cliente.get("ferramentas_usadas"),
-
-        "total_tokens":
-            cliente.get("total_tokens"),
-
-        "latencia_total_segundos":
-            cliente.get(
-                "latencia_total_segundos"
-            ),
+        "nivel_risco_agente": cliente.get(
+            "nivel_risco"
+        ),
+        "tipologia_suspeita": cliente.get(
+            "tipologia_suspeita"
+        ),
+        "principais_evidencias": cliente.get(
+            "principais_evidencias"
+        ),
+        "justificativa": cliente.get(
+            "justificativa"
+        ),
+        "recomendacao": cliente.get(
+            "recomendacao"
+        ),
+        "ferramentas_usadas": cliente.get(
+            "ferramentas_usadas"
+        ),
+        "total_tokens": cliente.get(
+            "total_tokens"
+        ),
+        "latencia_total_segundos": cliente.get(
+            "latencia_total_segundos"
+        ),
     }
 
     if confronto is not None:
         contexto["confronto"] = {
-            "eventos_fracionamento":
-                confronto.get(
-                    "eventos_fracionamento"
-                ),
-
-            "eventos_valor_atipico":
-                confronto.get(
-                    "eventos_valor_atipico"
-                ),
-
-            "risco_deterministico":
-                confronto.get(
-                    "risco_deterministico"
-                ),
-
-            "risco_agente":
-                confronto.get(
-                    "risco_agente"
-                ),
-
-            "resultado_confronto":
-                confronto.get(
-                    "resultado_confronto"
-                ),
+            "eventos_fracionamento": confronto.get(
+                "eventos_fracionamento"
+            ),
+            "eventos_valor_atipico": confronto.get(
+                "eventos_valor_atipico"
+            ),
+            "risco_deterministico": confronto.get(
+                "risco_deterministico"
+            ),
+            "risco_agente": confronto.get(
+                "risco_agente"
+            ),
+            "resultado_confronto": confronto.get(
+                "resultado_confronto"
+            ),
+            "quem_parece_mais_adequado": confronto.get(
+                "quem_parece_mais_adequado"
+            ),
+            "analise_divergencia": confronto.get(
+                "analise_divergencia"
+            ),
         }
 
-    return contexto
+    return limpar_valores(contexto)
 
 
-def consultar_llm(pergunta, contexto):
+def criar_chave_conversa(
+    cliente_principal,
+    cliente_comparacao,
+):
+    """
+    Mantém memórias separadas para cada contexto de análise.
+
+    Exemplo:
+    - CLI-029
+    - CLI-029__vs__CLI-014
+    """
+
+    if (
+        cliente_comparacao != "Nenhum"
+        and cliente_comparacao != cliente_principal
+    ):
+        return (
+            f"{cliente_principal}"
+            f"__vs__"
+            f"{cliente_comparacao}"
+        )
+
+    return str(cliente_principal)
+
+
+def descricao_conversa(
+    cliente_principal,
+    cliente_comparacao,
+):
+    if (
+        cliente_comparacao != "Nenhum"
+        and cliente_comparacao != cliente_principal
+    ):
+        return (
+            f"{cliente_principal} × "
+            f"{cliente_comparacao}"
+        )
+
+    return str(cliente_principal)
+
+
+def consultar_llm(
+    pergunta,
+    contexto,
+    historico,
+):
+    """
+    Consulta o modelo usando:
+
+    1. instruções de segurança/escopo;
+    2. contexto estruturado atual;
+    3. histórico anterior da conversa;
+    4. pergunta atual uma única vez.
+    """
+
     mensagens = [
         {
             "role": "system",
             "content": """
 Você é um assistente de apoio à triagem de PLD.
 
-Responda utilizando exclusivamente as evidências
-fornecidas no contexto.
+Use exclusivamente as informações fornecidas no contexto
+estruturado e no histórico desta conversa.
 
 Regras:
 - não invente informações;
 - não conclua ocorrência de ilícito sem evidência;
+- não atribua intenção criminosa ao cliente;
 - diferencie sinalização determinística de conclusão;
-- considere limitações dos dados;
-- seja objetivo;
-- apoie a análise humana;
-- não realize cálculos novos quando os resultados
-  já estiverem fornecidos.
-"""
-        }
+- considere as limitações dos dados;
+- seja objetivo e apoie a análise humana;
+- não realize cálculos novos quando os resultados já
+  estiverem fornecidos;
+- se uma informação não estiver no contexto, diga que ela
+  não foi informada ou não pôde ser avaliada;
+- não transforme a justificativa anterior do agente em fato:
+  trate-a como uma análise prévia que pode ter limitações;
+- não afirme ausência de um padrão quando o contexto não
+  trouxer evidência suficiente para essa conclusão.
+""",
+        },
+        {
+            "role": "system",
+            "content": (
+                "CONTEXTO ESTRUTURADO ATUAL:\n\n"
+                + json.dumps(
+                    contexto,
+                    ensure_ascii=False,
+                    indent=2,
+                    default=str,
+                )
+            ),
+        },
     ]
 
-    # Memória da conversa
-    for mensagem in st.session_state.mensagens:
-        mensagens.append(
-            {
-                "role": mensagem["role"],
-                "content": mensagem["content"],
-            }
-        )
+    # Inclui somente mensagens ANTERIORES.
+    # A pergunta atual ainda não foi adicionada ao histórico.
+    for mensagem in historico:
+        role = mensagem.get("role")
+        content = mensagem.get("content")
 
+        if (
+            role in {"user", "assistant"}
+            and isinstance(content, str)
+        ):
+            mensagens.append(
+                {
+                    "role": role,
+                    "content": content,
+                }
+            )
+
+    # A pergunta atual entra exatamente uma vez.
     mensagens.append(
         {
             "role": "user",
-            "content": f"""
-CONTEXTO DISPONÍVEL:
-
-{json.dumps(
-    contexto,
-    ensure_ascii=False,
-    indent=2,
-    default=str
-)}
-
-PERGUNTA DO ANALISTA:
-
-{pergunta}
-"""
+            "content": pergunta,
         }
     )
 
     resposta = client.chat.completions.create(
-        model="openai/gpt-oss-20b",
+        model=MODELO,
         messages=mensagens,
         temperature=0.1,
     )
 
-    return (
+    conteudo = (
         resposta
         .choices[0]
         .message
         .content
     )
 
+    if not conteudo:
+        raise RuntimeError(
+            "O modelo retornou uma resposta vazia."
+        )
+
+    return conteudo.strip()
+
+
+def registrar_interacao(
+    pergunta,
+    contexto,
+    chave_conversa,
+):
+    """
+    Executa a pergunta e só registra a nova interação
+    depois que a chamada ao LLM termina com sucesso.
+
+    Isso evita enviar a pergunta atual duas vezes.
+    """
+
+    historico = st.session_state.conversas.setdefault(
+        chave_conversa,
+        [],
+    )
+
+    resposta = consultar_llm(
+        pergunta=pergunta,
+        contexto=contexto,
+        historico=historico,
+    )
+
+    historico.append(
+        {
+            "role": "user",
+            "content": pergunta,
+        }
+    )
+
+    historico.append(
+        {
+            "role": "assistant",
+            "content": resposta,
+        }
+    )
+
+    return resposta
+
 
 # ============================================================
 # MEMÓRIA DA CONVERSA
 # ============================================================
 
-if "mensagens" not in st.session_state:
-    st.session_state.mensagens = []
+if "conversas" not in st.session_state:
+    st.session_state.conversas = {}
 
 
 # ============================================================
@@ -267,12 +444,17 @@ st.caption(
     "dos clientes sinalizados no Nível 2."
 )
 
-
 clientes = sorted(
     df_lote[
         "cliente_id"
-    ].dropna().unique()
+    ].dropna().astype(str).unique()
 )
+
+if not clientes:
+    st.error(
+        "Nenhum cliente foi encontrado nos resultados do lote."
+    )
+    st.stop()
 
 
 # ============================================================
@@ -280,7 +462,6 @@ clientes = sorted(
 # ============================================================
 
 with st.sidebar:
-
     st.header(
         "Clientes"
     )
@@ -295,10 +476,27 @@ with st.sidebar:
         ["Nenhum"] + clientes,
     )
 
+    chave_conversa_atual = criar_chave_conversa(
+        cliente_principal,
+        cliente_comparacao,
+    )
+
+    descricao_atual = descricao_conversa(
+        cliente_principal,
+        cliente_comparacao,
+    )
+
+    st.caption(
+        "A memória é separada por cliente "
+        "e por comparação."
+    )
+
     if st.button(
-        "Limpar memória da conversa"
+        "Limpar memória desta conversa"
     ):
-        st.session_state.mensagens = []
+        st.session_state.conversas[
+            chave_conversa_atual
+        ] = []
         st.rerun()
 
 
@@ -323,22 +521,22 @@ with col2:
         "Risco do agente",
         contexto_principal.get(
             "nivel_risco_agente",
-            "-"
-        ),
+            "-",
+        ) or "-",
     )
 
 with col3:
     confronto = contexto_principal.get(
         "confronto",
-        {}
-    )
+        {},
+    ) or {}
 
     st.metric(
         "Risco determinístico",
         confronto.get(
             "risco_deterministico",
-            "-"
-        ),
+            "-",
+        ) or "-",
     )
 
 
@@ -349,7 +547,6 @@ with col3:
 with st.expander(
     "Ver análise estruturada"
 ):
-
     st.json(
         contexto_principal,
         expanded=True,
@@ -361,21 +558,15 @@ with st.expander(
 # ============================================================
 
 contexto_analise = {
-    "cliente_principal":
-        contexto_principal
+    "cliente_principal": contexto_principal
 }
-
 
 if (
     cliente_comparacao != "Nenhum"
-    and cliente_comparacao
-    != cliente_principal
+    and cliente_comparacao != cliente_principal
 ):
-
-    contexto_secundario = (
-        montar_contexto_cliente(
-            cliente_comparacao
-        )
+    contexto_secundario = montar_contexto_cliente(
+        cliente_comparacao
     )
 
     contexto_analise[
@@ -389,42 +580,26 @@ if (
     comparacao = pd.DataFrame(
         [
             {
-                "cliente":
-                    cliente_principal,
-
-                "risco_agente":
-                    contexto_principal.get(
-                        "nivel_risco_agente"
-                    ),
-
-                "risco_deterministico":
+                "cliente": cliente_principal,
+                "risco_agente": contexto_principal.get(
+                    "nivel_risco_agente"
+                ),
+                "risco_deterministico": (
                     contexto_principal
-                    .get(
-                        "confronto",
-                        {}
-                    )
-                    .get(
-                        "risco_deterministico"
-                    ),
+                    .get("confronto", {})
+                    .get("risco_deterministico")
+                ),
             },
             {
-                "cliente":
-                    cliente_comparacao,
-
-                "risco_agente":
-                    contexto_secundario.get(
-                        "nivel_risco_agente"
-                    ),
-
-                "risco_deterministico":
+                "cliente": cliente_comparacao,
+                "risco_agente": contexto_secundario.get(
+                    "nivel_risco_agente"
+                ),
+                "risco_deterministico": (
                     contexto_secundario
-                    .get(
-                        "confronto",
-                        {}
-                    )
-                    .get(
-                        "risco_deterministico"
-                    ),
+                    .get("confronto", {})
+                    .get("risco_deterministico")
+                ),
             },
         ]
     )
@@ -446,36 +621,28 @@ st.subheader(
 
 acao1, acao2, acao3 = st.columns(3)
 
-
 if acao1.button(
     "Explicar o caso"
 ):
     pergunta_rapida = (
         f"Explique de forma objetiva por que "
         f"o cliente {cliente_principal} "
-        f"foi sinalizado."
+        f"foi sinalizado. Diferencie os alertas "
+        f"determinísticos da avaliação do agente."
     )
 
-    st.session_state.mensagens.append(
-        {
-            "role": "user",
-            "content": pergunta_rapida,
-        }
-    )
+    try:
+        registrar_interacao(
+            pergunta=pergunta_rapida,
+            contexto=contexto_analise,
+            chave_conversa=chave_conversa_atual,
+        )
+        st.rerun()
 
-    resposta = consultar_llm(
-        pergunta_rapida,
-        contexto_analise,
-    )
-
-    st.session_state.mensagens.append(
-        {
-            "role": "assistant",
-            "content": resposta,
-        }
-    )
-
-    st.rerun()
+    except Exception as erro:
+        st.error(
+            f"Erro ao consultar o modelo: {erro}"
+        )
 
 
 if acao2.button(
@@ -485,40 +652,30 @@ if acao2.button(
         f"Gere um parecer resumido para "
         f"o cliente {cliente_principal}, "
         f"destacando risco, evidências, "
-        f"limitações e recomendação."
+        f"limitações e recomendação. "
+        f"Não trate sinalizações como prova de ilícito."
     )
 
-    st.session_state.mensagens.append(
-        {
-            "role": "user",
-            "content": pergunta_rapida,
-        }
-    )
+    try:
+        registrar_interacao(
+            pergunta=pergunta_rapida,
+            contexto=contexto_analise,
+            chave_conversa=chave_conversa_atual,
+        )
+        st.rerun()
 
-    resposta = consultar_llm(
-        pergunta_rapida,
-        contexto_analise,
-    )
-
-    st.session_state.mensagens.append(
-        {
-            "role": "assistant",
-            "content": resposta,
-        }
-    )
-
-    st.rerun()
+    except Exception as erro:
+        st.error(
+            f"Erro ao consultar o modelo: {erro}"
+        )
 
 
 if acao3.button(
     "Comparar clientes"
 ):
-
     if (
-        cliente_comparacao
-        == "Nenhum"
-        or cliente_comparacao
-        == cliente_principal
+        cliente_comparacao == "Nenhum"
+        or cliente_comparacao == cliente_principal
     ):
         st.warning(
             "Selecione outro cliente "
@@ -531,29 +688,22 @@ if acao3.button(
             f"{cliente_principal} e "
             f"{cliente_comparacao}. "
             f"Destaque diferenças de risco, "
-            f"evidências e limitações."
+            f"evidências, divergências entre regra "
+            f"e agente e limitações."
         )
 
-        st.session_state.mensagens.append(
-            {
-                "role": "user",
-                "content": pergunta_rapida,
-            }
-        )
+        try:
+            registrar_interacao(
+                pergunta=pergunta_rapida,
+                contexto=contexto_analise,
+                chave_conversa=chave_conversa_atual,
+            )
+            st.rerun()
 
-        resposta = consultar_llm(
-            pergunta_rapida,
-            contexto_analise,
-        )
-
-        st.session_state.mensagens.append(
-            {
-                "role": "assistant",
-                "content": resposta,
-            }
-        )
-
-        st.rerun()
+        except Exception as erro:
+            st.error(
+                f"Erro ao consultar o modelo: {erro}"
+            )
 
 
 # ============================================================
@@ -564,8 +714,22 @@ st.subheader(
     "Conversa"
 )
 
-for mensagem in st.session_state.mensagens:
+st.caption(
+    f"Memória atual: {descricao_atual}"
+)
 
+mensagens_atuais = st.session_state.conversas.setdefault(
+    chave_conversa_atual,
+    [],
+)
+
+if not mensagens_atuais:
+    st.info(
+        "Ainda não há mensagens nesta conversa. "
+        "Use uma ação rápida ou escreva uma pergunta abaixo."
+    )
+
+for mensagem in mensagens_atuais:
     with st.chat_message(
         mensagem["role"]
     ):
@@ -583,35 +747,27 @@ pergunta = st.chat_input(
 )
 
 if pergunta:
-
-    st.session_state.mensagens.append(
-        {
-            "role": "user",
-            "content": pergunta,
-        }
-    )
-
     with st.chat_message("user"):
         st.markdown(pergunta)
 
     with st.chat_message("assistant"):
-
         with st.spinner(
             "Analisando..."
         ):
+            try:
+                resposta = registrar_interacao(
+                    pergunta=pergunta,
+                    contexto=contexto_analise,
+                    chave_conversa=chave_conversa_atual,
+                )
 
-            resposta = consultar_llm(
-                pergunta,
-                contexto_analise,
+            except Exception as erro:
+                resposta = None
+                st.error(
+                    f"Erro ao consultar o modelo: {erro}"
+                )
+
+        if resposta:
+            st.markdown(
+                resposta
             )
-
-        st.markdown(
-            resposta
-        )
-
-    st.session_state.mensagens.append(
-        {
-            "role": "assistant",
-            "content": resposta,
-        }
-    )

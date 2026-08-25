@@ -2,16 +2,29 @@
 
 Solução desenvolvida para o desafio técnico de estágio em Engenharia de Inteligência Artificial.
 
-O projeto simula um cenário de Prevenção à Lavagem de Dinheiro (PLD), no qual operações financeiras são analisadas utilizando uma combinação de:
+O projeto simula um cenário de Prevenção à Lavagem de Dinheiro (PLD), combinando:
 
 - tratamento de dados com Python e pandas;
 - regras determinísticas;
-- modelos de linguagem;
-- agente com ferramentas;
-- comparação entre regras e LLM;
+- análise com modelo de linguagem;
+- agente com seleção dinâmica de ferramentas;
+- processamento em lote;
+- confronto entre regras e agente;
 - interface conversacional para apoio à análise humana.
 
 Todos os dados utilizados são fictícios e foram fornecidos exclusivamente para o desafio.
+
+---
+
+## Status da entrega
+
+| Etapa | Status |
+|---|---|
+| Nível 1 — Dados, regras e LLM | ✅ Completo |
+| Nível 2 — Agente e execução em escala | ✅ Completo |
+| Confronto regras x agente | ✅ Completo |
+| Nível 3 — Trilha C / Interface Conversacional | ✅ Completo |
+| Documentação e outputs | ✅ Completo |
 
 ---
 
@@ -20,19 +33,35 @@ Todos os dados utilizados são fictícios e foram fornecidos exclusivamente para
 ```text
 .
 ├── dados/
+│   ├── dados_nivel_1.json
+│   └── dados_nivel_2.json
+│
 ├── docs/
 │   ├── DECISOES.md
 │   └── USO_DE_IA.md
+│
 ├── nivel_1/
 │   └── nivel_1.ipynb
+│
 ├── nivel_2/
 │   ├── agente.py
 │   ├── confronto.py
 │   ├── nivel_2.ipynb
 │   └── tools.py
+│
 ├── nivel_3/
 │   └── app.py
+│
 ├── outputs/
+│   ├── lote_clientes.csv
+│   ├── lote_clientes.json
+│   ├── metricas_execucao.csv
+│   ├── confronto.csv
+│   ├── confronto_resumo.json
+│   ├── interface_principal.png
+│   ├── interface_memoria.png
+│   └── interface_comparacao.png
+│
 ├── .env.example
 ├── .gitignore
 ├── ENTREGA.yaml
@@ -55,9 +84,9 @@ Todos os dados utilizados são fictícios e foram fornecidos exclusivamente para
 
 ---
 
-## Configuração
+# Configuração
 
-### 1. Criar ambiente virtual
+## 1. Criar o ambiente virtual
 
 No Windows:
 
@@ -65,7 +94,7 @@ No Windows:
 python -m venv .venv
 ```
 
-Ative o ambiente:
+Ative:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
@@ -77,33 +106,31 @@ Caso o PowerShell bloqueie a execução:
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
 ```
 
-Depois:
+Depois execute novamente:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 ```
 
-### 2. Instalar dependências
+---
+
+## 2. Instalar as dependências
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
 
-### 3. Configurar a API
+---
 
-Copie o arquivo:
+## 3. Configurar a API
+
+Crie um arquivo `.env` na raiz do projeto com base em:
 
 ```text
 .env.example
 ```
 
-para:
-
-```text
-.env
-```
-
-E configure:
+Configure:
 
 ```env
 GROQ_API_KEY=sua_chave_aqui
@@ -113,51 +140,61 @@ A chave real não deve ser adicionada ao Git.
 
 ---
 
-## Nível 1 — Dados e primeira análise com LLM
+# Nível 1 — Dados, regras e primeira análise com LLM
 
-O Nível 1 está em:
+O Nível 1 está implementado em:
 
 ```text
 nivel_1/nivel_1.ipynb
 ```
 
-O notebook contém as saídas já executadas.
+O notebook contém as principais etapas já executadas.
 
-### Tratamento dos dados
+## Tratamento dos dados
 
-Foram identificados problemas como:
+Foram tratados:
 
-- operações duplicadas;
+- registros duplicados;
 - datas ausentes;
-- valores em BRL e USD.
+- operações em BRL e USD.
 
-As duplicidades foram removidas pelo identificador da operação.
+Duplicidades foram removidas utilizando o identificador da operação.
 
-Datas ausentes foram preservadas como valores nulos para evitar descarte desnecessário de operações válidas para análises não temporais.
+Datas ausentes foram preservadas como valores nulos, permitindo que as operações ainda sejam utilizadas em análises que não dependam de data.
 
-Valores em USD foram convertidos utilizando exclusivamente a taxa de câmbio fornecida no arquivo de dados.
+Valores em USD foram convertidos para BRL utilizando exclusivamente a taxa de câmbio fornecida nos dados.
 
-### Regras implementadas
+---
 
-#### Regra 1 — Fracionamento
+## Regra 1 — Fracionamento
 
-Sinaliza situações em que um cliente realiza, na mesma data:
+Um cliente é sinalizado quando, na mesma data:
 
-- 3 ou mais operações;
-- soma superior a R$ 50.000;
-- nenhuma operação individual igual ou superior a R$ 20.000.
+- possui 3 ou mais operações;
+- o total ultrapassa R$ 50.000;
+- cada operação individual é inferior a R$ 20.000.
 
-#### Regra 2 — Valor atípico
+A regra foi validada com casos positivos e negativos conhecidos na base.
 
-Sinaliza operações superiores a cinco vezes a mediana das operações do próprio cliente.
+---
 
-A regra é aplicada apenas para clientes com pelo menos quatro operações.
+## Regra 2 — Valor atípico
 
-### Análise com LLM
+Uma operação é considerada atípica quando:
 
-Um cliente sinalizado foi analisado por um modelo de linguagem.
+```text
+valor da operação > 5 × mediana do cliente
+```
 
-A resposta foi validada em estrutura contendo:
+A regra é aplicada somente a clientes com pelo menos quatro operações.
+
+---
+
+## Análise qualitativa com LLM
+
+Um cliente sinalizado foi enviado ao modelo apenas após os cálculos determinísticos já estarem concluídos.
+
+A resposta foi validada estruturalmente com Pydantic e contém:
 
 - nível de risco;
 - tipologia suspeita;
@@ -166,104 +203,144 @@ A resposta foi validada em estrutura contendo:
 
 Também foram comparadas duas estratégias de prompt.
 
-O segundo prompt apresentou instruções mais explícitas para limitar a resposta às evidências disponíveis, produzindo uma análise mais objetiva e concisa.
+A versão com restrições mais explícitas apresentou maior controle sobre inferências e foi utilizada como referência para a construção do agente do Nível 2.
 
 ---
 
-## Nível 2 — Escala e agente
+# Nível 2 — Escala e agente
 
-O Nível 2 utiliza a base maior:
+O Nível 2 utiliza:
 
 ```text
 dados/dados_nivel_2.json
 ```
 
-As mesmas regras do Nível 1 foram reaplicadas em escala.
+As mesmas regras determinísticas do Nível 1 foram reaplicadas à base maior.
 
-Os 10 clientes mais sinalizados foram selecionados considerando:
+Os 10 clientes mais priorizados foram escolhidos utilizando:
 
-1. número de sinalizações;
+1. quantidade de sinalizações;
 2. volume total como critério de desempate.
 
-### Ferramentas do agente
+Para o ranking, cada operação marcada é considerada uma sinalização.
 
-O agente possui ferramentas para consultar informações sob demanda:
+No confronto de risco, operações de fracionamento pertencentes ao mesmo cliente e à mesma data são consolidadas como um único evento.
 
-#### `historico_cliente`
+---
 
-Retorna um resumo agregado das operações do cliente.
+## Ferramentas do agente
 
-#### `operacoes_do_dia`
+As ferramentas estão implementadas em:
 
-Retorna as operações de um cliente em uma determinada data.
+```text
+nivel_2/tools.py
+```
 
-#### `perfil_canal`
+O agente pode utilizar:
 
-Analisa a distribuição das operações por canal.
+### `historico_cliente`
 
-#### `operacoes_sinalizadas`
+Retorna informações agregadas do histórico do cliente.
 
-Retorna as operações que acionaram alguma regra determinística.
+### `operacoes_do_dia`
 
-O modelo decide quais ferramentas utilizar de acordo com o caso.
+Retorna as operações de um cliente em uma data específica.
 
-As ferramentas não são executadas automaticamente em todas as investigações.
+### `perfil_canal`
 
-### Agente de investigação
+Apresenta a distribuição das operações por canal.
 
-O agente está implementado em:
+### `operacoes_sinalizadas`
+
+Retorna somente as operações que acionaram alguma regra determinística.
+
+O agente escolhe dinamicamente quais ferramentas consultar.
+
+Nem todas as ferramentas são executadas para todos os clientes.
+
+---
+
+## Agente de investigação
+
+Implementação:
 
 ```text
 nivel_2/agente.py
 ```
 
-Foi utilizado:
+Modelo utilizado:
 
 ```text
 openai/gpt-oss-20b
 ```
 
-via Groq.
+Provedor:
 
-O agente:
+```text
+Groq
+```
 
-1. recebe o identificador do cliente;
-2. decide quais ferramentas consultar;
-3. analisa as evidências retornadas;
-4. produz um parecer estruturado.
+Fluxo simplificado:
 
-O modelo foi instruído a tratar as flags como sinais de triagem, e não como provas de atividade ilícita.
+```text
+Cliente priorizado
+       ↓
+Agente
+       ↓
+Escolha dinâmica de ferramentas
+       ↓
+Consulta às evidências
+       ↓
+Parecer estruturado
+```
 
-Também foi orientado a evitar inferências não sustentadas pelos dados.
+O agente foi instruído a:
+
+- utilizar apenas informações disponíveis;
+- tratar flags como sinais de triagem;
+- não considerar sinalização como comprovação de ilícito;
+- evitar inventar contexto;
+- não refazer cálculos já fornecidos pelas ferramentas;
+- produzir recomendações proporcionais;
+- manter a decisão final sujeita à análise humana.
 
 ---
 
-## Execução em lote
+# Execução do lote
 
 O agente foi executado sobre os 10 clientes priorizados.
 
-Foram registradas métricas de:
+Foram registradas métricas por chamada e por cliente:
 
-- tokens;
-- número de chamadas ao LLM;
+- tokens de entrada;
+- tokens de saída;
+- tokens totais;
 - latência;
-- ferramentas utilizadas.
+- custo estimado;
+- ferramentas utilizadas;
+- número de chamadas ao LLM.
 
-### Resultado da execução
+## Resultado final
 
 | Métrica | Resultado |
 |---|---:|
 | Clientes processados | 10 |
 | Respostas válidas | 10 |
-| Chamadas ao LLM | 40 |
-| Tokens totais | 61.496 |
-| Média de tokens por cliente | 6.149,60 |
-| Latência total | 218,10 s |
-| Latência média por cliente | 21,81 s |
+| Chamadas ao LLM | 36 |
+| Tokens de entrada | 48.128 |
+| Tokens de saída | 8.067 |
+| Tokens totais | 56.195 |
+| Média de tokens por chamada | 1.560,97 |
+| Média de tokens por cliente | 5.619,50 |
+| Latência total das chamadas | 261,10 s |
+| Latência média por chamada | 7,25 s |
+| Latência média por cliente | 26,11 s |
+| Custo estimado total | US$ 0,006030 |
+| Custo estimado médio por cliente | US$ 0,000603 |
 
-Durante o lote ocorreram limites temporários de tokens por minuto da API.
+Durante a execução ocorreram limites temporários da API.
 
-Foi implementado retry com espera progressiva para evitar a interrupção do processamento.
+Foi implementado tratamento de rate limit com novas tentativas e espera antes de repetir a chamada.
 
 Os resultados estão disponíveis em:
 
@@ -275,23 +352,23 @@ outputs/metricas_execucao.csv
 
 ---
 
-## Confronto entre regras e agente
+# Confronto entre regras e agente
 
-O confronto está implementado em:
+Implementação:
 
 ```text
 nivel_2/confronto.py
 ```
 
-Foi criado um critério determinístico de risco para permitir a comparação com a classificação do agente.
-
-Critério adotado:
+Foi criado um critério determinístico de risco apenas para permitir a comparação solicitada no desafio:
 
 - **baixo:** nenhum evento determinístico;
-- **médio:** um evento;
-- **alto:** dois ou mais eventos ou presença das duas tipologias.
+- **médio:** um evento determinístico;
+- **alto:** dois ou mais eventos ou ocorrência das duas tipologias.
 
-### Resultado
+Esse critério é de triagem e não representa uma metodologia real de PLD.
+
+## Resultado
 
 | Métrica | Resultado |
 |---|---:|
@@ -300,15 +377,17 @@ Critério adotado:
 | Divergências | 6 |
 | Taxa de concordância | 40% |
 
-As divergências ocorreram principalmente nos casos de múltiplas operações classificadas como valor atípico.
+Os quatro clientes com eventos de fracionamento receberam risco médio tanto pelas regras quanto pelo agente.
 
-As regras determinísticas elevaram esses casos para risco alto pelo número de eventos.
+As seis divergências ocorreram em clientes com múltiplas operações de valor atípico.
 
-O agente, por outro lado, manteve alguns casos como risco médio ao não encontrar sinais adicionais como fracionamento ou concentração temporal.
+A análise foi realizada caso a caso. Em algumas situações o agente apresentou uma priorização mais proporcional; em outras, tanto a classificação determinística quanto a do agente foram consideradas extremas.
 
-Essa divergência foi considerada útil, pois demonstra que o agente não apenas repete mecanicamente o resultado das regras.
+Também foi identificada uma situação em que a classificação do agente parecia razoável, mas sua justificativa introduziu uma inferência mais forte do que os dados permitiam.
 
-Os resultados estão em:
+Isso reforça que o LLM é utilizado como apoio ao analista e não como decisão automática.
+
+Resultados:
 
 ```text
 outputs/confronto.csv
@@ -317,31 +396,39 @@ outputs/confronto_resumo.json
 
 ---
 
-## Nível 3 — Interface Conversacional
+# Nível 3 — Trilha C: Interface Conversacional
 
 Foi escolhida a:
 
 **Trilha C — Interface Conversacional**
 
-A aplicação foi construída com Streamlit e está em:
+A aplicação foi construída com Streamlit:
 
 ```text
 nivel_3/app.py
 ```
 
-A interface permite ao analista:
+A interface permite:
 
 - selecionar um cliente;
-- consultar seu nível de risco;
-- visualizar a classificação determinística;
-- acessar a análise estruturada;
+- visualizar risco do agente;
+- visualizar risco determinístico;
+- consultar a análise estruturada;
 - pedir explicações sobre o caso;
-- gerar parecer resumido;
-- comparar dois clientes;
-- fazer perguntas adicionais;
+- gerar um parecer resumido;
+- comparar clientes;
+- realizar perguntas adicionais;
 - manter memória da conversa durante a sessão.
 
-### Executando a interface
+A memória é separada por contexto da análise.
+
+Dessa forma, uma conversa realizada sobre um cliente não é enviada automaticamente ao modelo quando o analista muda para outro caso.
+
+Também existe memória própria para contextos de comparação entre clientes.
+
+---
+
+## Executando a interface
 
 Na raiz do projeto:
 
@@ -349,7 +436,7 @@ Na raiz do projeto:
 python -m streamlit run nivel_3/app.py
 ```
 
-O Streamlit disponibilizará a aplicação localmente, normalmente em:
+O Streamlit normalmente ficará disponível em:
 
 ```text
 http://localhost:8501
@@ -357,63 +444,48 @@ http://localhost:8501
 
 ---
 
-## Interface
+# Prints da interface
 
-### Tela principal
+## Tela principal
 
 ![Interface principal](outputs/interface_principal.png)
 
-### Memória da conversa
-
-A interface mantém o contexto da conversa durante a sessão.
-
-Por exemplo, depois de solicitar a explicação de um cliente, o analista pode perguntar:
-
-> Quais são as limitações dessa conclusão?
-
-sem repetir todo o contexto.
+## Memória da conversa
 
 ![Memória da conversa](outputs/interface_memoria.png)
 
-### Comparação entre clientes
-
-Também é possível selecionar dois clientes e solicitar uma comparação de:
-
-- risco;
-- evidências;
-- tipologia;
-- limitações;
-- recomendações.
+## Comparação entre clientes
 
 ![Comparação de clientes](outputs/interface_comparacao.png)
 
 ---
 
+# Documentação
+
 ## Decisões técnicas
 
-As principais decisões, trade-offs e limitações estão documentados em:
+Trade-offs, limitações e possíveis evoluções:
 
 ```text
 docs/DECISOES.md
 ```
 
-Entre os pontos discutidos estão:
+Entre os principais temas estão:
 
-- separação entre cálculos e interpretação;
-- tratamento de dados ausentes;
-- arquitetura do agente;
+- separação entre regras e interpretação do LLM;
 - seleção dinâmica de ferramentas;
-- controle de inferências do LLM;
-- rate limits;
+- controle de inferências;
+- rate limit;
 - confronto entre regras e agente;
-- escolha da interface conversacional;
-- limitações e possíveis evoluções.
+- memória da interface;
+- limitações da solução;
+- possíveis evoluções.
 
 ---
 
 ## Uso de Inteligência Artificial
 
-O uso de ferramentas de IA durante o desenvolvimento está descrito em:
+O uso de IA como apoio durante o desenvolvimento está documentado em:
 
 ```text
 docs/USO_DE_IA.md
@@ -421,56 +493,72 @@ docs/USO_DE_IA.md
 
 O documento registra:
 
-- onde a IA auxiliou;
+- em quais etapas a IA auxiliou;
 - como as sugestões foram validadas;
-- problemas encontrados;
-- momentos em que sugestões da IA precisaram ser corrigidas.
+- situações em que sugestões precisaram ser corrigidas.
 
 ---
 
-## Limitações
+# Limitações
 
-Esta solução foi desenvolvida para dados fictícios e possui caráter experimental.
+Esta solução utiliza dados fictícios e possui caráter experimental.
 
 Ela não representa um sistema real de decisão de PLD.
 
 Entre as principais limitações estão:
 
-- pequena quantidade de dados;
-- ausência de informações cadastrais;
+- base de dados pequena;
+- ausência de contexto cadastral completo;
 - ausência de histórico de longo prazo;
-- ausência de informações regulatórias adicionais;
-- ausência de autenticação;
-- memória conversacional não persistente;
-- dependência de uma API externa para o LLM;
-- sensibilidade a limites de uso da API.
+- ausência de integrações bancárias reais;
+- ausência de autenticação e autorização;
+- memória não persistente entre sessões;
+- dependência de API externa;
+- possíveis variações nas respostas do LLM.
 
-As classificações devem ser interpretadas como apoio à triagem humana.
+As classificações devem ser interpretadas como apoio à triagem e revisão humana.
 
----
+Para uma discussão mais detalhada dos trade-offs e limitações, consulte:
 
-## Possíveis evoluções
-
-Com mais tempo, eu exploraria:
-
-- cache de respostas do LLM;
-- persistência das investigações;
-- banco de dados;
-- autenticação e autorização;
-- observabilidade de custo e latência;
-- avaliação automatizada de prompts;
-- versionamento de prompts;
-- testes automatizados;
-- proteção contra prompt injection;
-- human-in-the-loop estruturado;
-- integração com serviços reais de dados;
-- containerização com Docker.
+```text
+docs/DECISOES.md
+```
 
 ---
 
-## Conclusão
+# Entregáveis principais
 
-O projeto demonstra uma arquitetura híbrida em que:
+```text
+ENTREGA.yaml
+
+nivel_1/nivel_1.ipynb
+
+nivel_2/nivel_2.ipynb
+nivel_2/tools.py
+nivel_2/agente.py
+nivel_2/confronto.py
+
+nivel_3/app.py
+
+outputs/lote_clientes.csv
+outputs/lote_clientes.json
+outputs/metricas_execucao.csv
+outputs/confronto.csv
+outputs/confronto_resumo.json
+
+outputs/interface_principal.png
+outputs/interface_memoria.png
+outputs/interface_comparacao.png
+
+docs/DECISOES.md
+docs/USO_DE_IA.md
+```
+
+---
+
+# Conclusão
+
+A solução utiliza uma arquitetura híbrida:
 
 ```text
 Dados
@@ -479,15 +567,17 @@ Tratamento com pandas
   ↓
 Regras determinísticas
   ↓
-Priorização de clientes
+Priorização
   ↓
 Agente com ferramentas
   ↓
 Parecer estruturado
   ↓
-Confronto regra x agente
+Confronto regras x agente
   ↓
 Interface para análise humana
 ```
 
-A principal ideia foi manter cálculos objetivos e auditáveis fora do LLM, utilizando o modelo somente para interpretação das evidências e apoio à decisão humana.
+A principal decisão foi manter cálculos objetivos e auditáveis fora do LLM.
+
+O modelo é utilizado como uma camada de interpretação das evidências e apoio à triagem, mantendo a revisão humana como parte essencial do processo.

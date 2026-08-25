@@ -6,8 +6,9 @@
   "criterio_deterministico": {
     "baixo": "nenhum evento determinístico",
     "medio": "um único evento determinístico",
-    "alto": "mais de um evento determinístico ou ocorrência das duas tipologias"
+    "alto": "dois ou mais eventos determinísticos ou ocorrência das duas tipologias"
   },
+  "observacao": "A classificação determinística representa priorização de triagem e não confirmação de ocorrência de ilícito.",
   "clientes_divergentes": [
     "CLI-014",
     "CLI-023",
@@ -15,5 +16,61 @@
     "CLI-013",
     "CLI-005",
     "CLI-026"
+  ],
+  "avaliacao_divergencias": [
+    {
+      "cliente_id": "CLI-014",
+      "risco_deterministico": "alto",
+      "risco_agente": "baixo",
+      "eventos_fracionamento": 0,
+      "eventos_valor_atipico": 3,
+      "quem_parece_mais_adequado": "nenhum dos dois isoladamente",
+      "analise_divergencia": "A regra determinística classificou o cliente como risco alto porque três operações foram identificadas como valores atípicos. Esse critério é objetivo, mas pode superestimar o risco ao tratar a repetição da mesma regra como evidência suficiente para risco alto. Por outro lado, classificar o caso como baixo parece permissivo diante da existência de três operações que ultrapassaram o limiar de atipicidade. Uma classificação intermediária de risco médio parece mais proporcional, mantendo o caso priorizado para revisão humana sem transformar os alertas em comprovação de ilícito."
+    },
+    {
+      "cliente_id": "CLI-023",
+      "risco_deterministico": "alto",
+      "risco_agente": "baixo",
+      "eventos_fracionamento": 0,
+      "eventos_valor_atipico": 2,
+      "quem_parece_mais_adequado": "nenhum dos dois isoladamente",
+      "analise_divergencia": "A regra determinística elevou o caso para risco alto pela existência de duas operações de valor atípico. O agente reduziu para baixo após considerar o histórico, mas as próprias evidências indicam que essas operações estão entre as maiores movimentações do cliente. Assim, risco alto parece excessivo para uma única tipologia simples, enquanto risco baixo reduz demais a importância dos alertas. Risco médio seria uma priorização mais equilibrada para análise humana adicional."
+    },
+    {
+      "cliente_id": "CLI-028",
+      "risco_deterministico": "alto",
+      "risco_agente": "médio",
+      "eventos_fracionamento": 0,
+      "eventos_valor_atipico": 2,
+      "quem_parece_mais_adequado": "agente, com revisão humana",
+      "analise_divergencia": "A regra determinística classificou o cliente como alto porque duas operações acionaram a mesma regra de valor atípico. O agente manteve o caso em risco médio, reconhecendo a concentração das operações de maior valor sem tratar automaticamente dois alertas da mesma tipologia como risco alto. Essa classificação parece mais proporcional às evidências disponíveis, mantendo a necessidade de revisão sem concluir ocorrência de ilícito."
+    },
+    {
+      "cliente_id": "CLI-013",
+      "risco_deterministico": "alto",
+      "risco_agente": "médio",
+      "eventos_fracionamento": 0,
+      "eventos_valor_atipico": 2,
+      "quem_parece_mais_adequado": "agente na classificação, com ressalva na justificativa",
+      "analise_divergencia": "A classificação de risco médio do agente parece mais proporcional do que o risco alto produzido automaticamente pela repetição da regra de valor atípico. Entretanto, a justificativa do agente fez uma inferência excessiva ao sugerir possível intenção de ocultar a origem dos recursos. Os dados permitem afirmar que houve concentração de operações atípicas, mas não permitem inferir intenção criminosa. Portanto, a classificação do agente parece razoável, porém sua justificativa deveria ser mais conservadora."
+    },
+    {
+      "cliente_id": "CLI-005",
+      "risco_deterministico": "alto",
+      "risco_agente": "baixo",
+      "eventos_fracionamento": 0,
+      "eventos_valor_atipico": 2,
+      "quem_parece_mais_adequado": "nenhum dos dois isoladamente",
+      "analise_divergencia": "A regra determinística atribuiu risco alto pela existência de duas operações de valor atípico, mas não considera outras características do histórico. O agente, por outro lado, reduziu o caso para risco baixo. Mesmo sem outros sinais corroborantes, duas operações que acionaram a regra ainda justificam priorização. Assim, risco médio parece uma posição mais proporcional entre o excesso de sensibilidade da regra e a classificação mais permissiva do agente."
+    },
+    {
+      "cliente_id": "CLI-026",
+      "risco_deterministico": "alto",
+      "risco_agente": "médio",
+      "eventos_fracionamento": 0,
+      "eventos_valor_atipico": 2,
+      "quem_parece_mais_adequado": "agente, com revisão humana",
+      "analise_divergencia": "A regra determinística classificou o cliente como alto apenas porque duas operações acionaram a mesma regra de valor atípico. O agente reconheceu essas operações, mas não identificou evidências suficientes para elevar automaticamente o caso ao nível máximo de priorização. O risco médio parece mais proporcional às informações disponíveis e preserva a necessidade de acompanhamento humano."
+    }
   ]
 }

@@ -1,53 +1,53 @@
 candidato: "Cauã Brian Calicchio"
 
 modelo_usado: "openai/gpt-oss-20b"
-provedor: "Groq"
+provedor: "groq"
 
-horas_dedicadas: 5
+horas_dedicadas: 7
 
 nivel_1:
   limpeza_dados:
     status: completo
-    caminho: "nivel_1/nivel_1.ipynb"
+    onde: "nivel_1/nivel_1.ipynb"
 
   regras_pandas:
     status: completo
-    caminho: "nivel_1/nivel_1.ipynb"
+    onde: "nivel_1/nivel_1.ipynb"
 
   validacao_regras:
     status: completo
-    caminho: "nivel_1/nivel_1.ipynb"
+    onde: "nivel_1/nivel_1.ipynb"
 
   saida_estruturada:
     status: completo
-    caminho: "nivel_1/nivel_1.ipynb"
+    onde: "nivel_1/nivel_1.ipynb"
 
   comparacao_prompts:
     status: completo
-    caminho: "nivel_1/nivel_1.ipynb"
+    onde: "nivel_1/nivel_1.ipynb"
 
 nivel_2:
   regras_em_escala:
     status: completo
-    caminho: "nivel_2/nivel_2.ipynb"
+    onde: "nivel_2/nivel_2.ipynb"
 
   ferramentas:
     status: completo
-    caminho: "nivel_2/tools.py"
+    onde: "nivel_2/tools.py"
 
   agente:
     status: completo
-    caminho: "nivel_2/agente.py"
+    onde: "nivel_2/agente.py"
 
   lote:
     status: completo
-    caminho: "outputs/lote_clientes.csv"
+    onde: "outputs/lote_clientes.csv; outputs/lote_clientes.json; outputs/metricas_execucao.csv"
 
   confronto:
     status: completo
-    caminho: "nivel_2/confronto.py"
+    onde: "nivel_2/confronto.py; outputs/confronto.csv; outputs/confronto_resumo.json"
 
 nivel_3:
   trilha_escolhida: "C"
   status: completo
-  caminho: "nivel_3/app.py"
+  onde: "nivel_3/app.py; outputs/interface_principal.png; outputs/interface_memoria.png; outputs/interface_comparacao.png"
