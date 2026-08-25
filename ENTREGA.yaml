@@ -3,7 +3,7 @@ candidato: "Cauã Brian Calicchio"
 modelo_usado: "openai/gpt-oss-20b"
 provedor: "groq"
 
-horas_dedicadas: 7
+horas_dedicadas: 8
 
 nivel_1:
   limpeza_dados:
